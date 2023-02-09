@@ -28,8 +28,10 @@ async function main_routine() {
 
     const jobs_ids  = get_jobs_ids();
     const jobs_data = await get_jobs_data(jobs_ids);
-    console.log(jobs_data);
+    const jobs_parse = await jsonata_parse_jobs(jobs_data);
 
+    console.log(jobs_parse);
+    
 }
 
 
@@ -51,7 +53,6 @@ function get_jobs_ids() {
 
     return jobids;
 }
-
 
 
 async function get_jobs_data(jobs_ids) {
@@ -180,3 +181,11 @@ function get_job_promise_bids (job_uid) {
 }
 
 
+async function jsonata_parse_jobs(jobs_data) {
+    
+    console.log(jobs_data);
+    const jsonataRules = '$.(  $details  := details; $connects := connects; $bids     := bids; $clientAct := $details.jobDetails.opening.job.clientActivity; $id := $details.jobDetails.opening.job.info.ciphertext; $budgetType := $details.jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetType; $budgetType := ($budgetType = 1) ? "hourly" : $budgetType; $budgetType := ($budgetType != "hourly") ? $details.jobDetails.opening.job.budget.amount : $budgetType; $budgetType := ($budgetType = 0) ? "none" : $budgetType; $budgetType := ($type($budgetType) = "number") ? "fixed" : $budgetType;  $hourlyMin := $details.jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetMin; $hourlyMax := $details.jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetMax;  $forceNumber := function($input) { ($type($input) != "number") ? 0 : $input };  $hourlyMin := $forceNumber($hourlyMin); $hourlyMax := $forceNumber($hourlyMax);  $hourlyAvg := $average([$hourlyMin, $hourlyMax]);  $budgetValue := "none"; $budgetValue := ($budgetType = "hourly") ? $hourlyAvg : $budgetValue; $budgetValue := ($budgetType = "fixed") ? $details.jobDetails.opening.job.budget.amount : $budgetValue; $budgetDebug := [$details.jobDetails.opening.job.budget, $details.jobDetails.opening.job.extendedBudgetInfo]; $maxbid := $max($bids.bids.amountShown); $maxbid := $exists($maxbid) ? $maxbid : 0; $clientAvgRate := $details.jobDetails.buyer.info.avgHourlyJobsRate.amount; $clientAvgRate := $exists($clientAvgRate) ? $clientAvgRate : 0; $clientAvgRate := "$" & $round($clientAvgRate, 0); { "job" : { "id": $id, "link": "https://www.upwork.com/jobs/" & $id, "title": $details.jobDetails.opening.job.info.title, "description": $details.jobDetails.opening.job.description, "dateCreated": $details.jobDetails.opening.job.info.createdOn, "dateChecked": $details.jobDetails.opening.job.clientActivity.lastBuyerActivity, "devsApplied": $details.jobDetails.opening.job.clientActivity.totalApplicants, "devsHired": $details.jobDetails.opening.job.clientActivity.totalHired, "devsInterviewing": $details.jobDetails.opening.job.clientActivity.totalInvitedToInterview, "devsInvited": $details.jobDetails.opening.job.clientActivity.invitationsSent, "devsUnanswered": $details.jobDetails.opening.job.clientActivity.unansweredInvites, "budgetType": $budgetType, "budgetValue" : "$" & $budgetValue, "connects": $connects.jobsPrice, "connectsBid":  $maxbid, "clientName" : $details.jobDetails.buyer.info.company.name, "clientEmployees" : $details.jobDetails.buyer.info.company.profile.size, "clientCountry" : $details.jobDetails.buyer.info.location.country, "clientPayverified": $details.jobDetails.buyer.isPaymentMethodVerified, "clientScore": $round($details.jobDetails.buyer.info.stats.score, 1), "clientSpent": "$" & $details.jobDetails.buyer.info.stats.totalCharges.amount, "clientRateAvg": $clientAvgRate } } )';
+    var result = await jsonata(jsonataRules).evaluate(jobs_data);
+    return result;
+
+}

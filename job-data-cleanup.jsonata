@@ -1,23 +1,27 @@
 $.(
     
+    $details  := details;
+    $connects := connects;
+    $bids     := bids;
+
     /* Client activity */
-    $clientAct := jobDetails.opening.job.clientActivity;
-    $id := jobDetails.opening.job.info.ciphertext;
+    $clientAct := $details.jobDetails.opening.job.clientActivity;
+    $id := $details.jobDetails.opening.job.info.ciphertext;
 
     /* ------ Start budget -------- */
 
     /* check key to see if 1 ("hourly") */
-    $budgetType := jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetType;
+    $budgetType := $details.jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetType;
     $budgetType := ($budgetType = 1) ? "hourly" : $budgetType;
 
     /* if it wasn't marked as hourly, store job flat amount */
-    $budgetType := ($budgetType != "hourly") ? jobDetails.opening.job.budget.amount : $budgetType;
+    $budgetType := ($budgetType != "hourly") ? $details.jobDetails.opening.job.budget.amount : $budgetType;
     /* if flat amount is zero, mark as none, otherwise preserve values or mark as fixed */
     $budgetType := ($budgetType = 0) ? "none" : $budgetType;
     $budgetType := ($type($budgetType) = "number") ? "fixed" : $budgetType;
 
-    $hourlyMin := jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetMin;
-    $hourlyMax := jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetMax;
+    $hourlyMin := $details.jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetMin;
+    $hourlyMax := $details.jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetMax;
 
     $forceNumber := function($input) {
         ($type($input) != "number") ? 0 : $input
@@ -30,40 +34,58 @@ $.(
     
     $budgetValue := "none";
     $budgetValue := ($budgetType = "hourly") ? $hourlyAvg : $budgetValue;
-    $budgetValue := ($budgetType = "fixed") ? jobDetails.opening.job.budget.amount : $budgetValue;
+    $budgetValue := ($budgetType = "fixed") ? $details.jobDetails.opening.job.budget.amount : $budgetValue;
 
     /* ------ End budget -------- */
     
-    $budgetDebug := [jobDetails.opening.job.budget, jobDetails.opening.job.extendedBudgetInfo];
+    $budgetDebug := [$details.jobDetails.opening.job.budget, $details.jobDetails.opening.job.extendedBudgetInfo];
+
+    /* Max bid */
+    $maxbid := $max($bids.bids.amountShown);
+    $maxbid := $exists($maxbid) ? $maxbid : 0;
+
+    /* Client avg rate */
+    $clientAvgRate := $details.jobDetails.buyer.info.avgHourlyJobsRate.amount;
+    $clientAvgRate := $exists($clientAvgRate) ? $clientAvgRate : 0;
+    $clientAvgRate := "$" & $round($clientAvgRate, 0);
 
     /* Output block */
     {
         "job" : {
 
-            "tokens": jobDetails.opening.job.info.access,
-
-            /* meta */
+            /* Meta */
             "id": $id,
             "link": "https://www.upwork.com/jobs/" & $id,
-            "title": jobDetails.opening.job.info.title,
-            "description": jobDetails.opening.job.description,
+            "title": $details.jobDetails.opening.job.info.title,
+            "description": $details.jobDetails.opening.job.description,
+
+            /* dates */
+            "dateCreated": $details.jobDetails.opening.job.info.createdOn,
+            "dateChecked": $details.jobDetails.opening.job.clientActivity.lastBuyerActivity,
+
+            /* competition */
+            "devsApplied": $details.jobDetails.opening.job.clientActivity.totalApplicants,
+            "devsHired": $details.jobDetails.opening.job.clientActivity.totalHired,
+            "devsInterviewing": $details.jobDetails.opening.job.clientActivity.totalInvitedToInterview,
+            "devsInvited": $details.jobDetails.opening.job.clientActivity.invitationsSent,
+            "devsUnanswered": $details.jobDetails.opening.job.clientActivity.unansweredInvites,
+
 
             /* ROI */
             "budgetType": $budgetType,
-            "budgetValue" : $budgetValue,
+            "budgetValue" : "$" & $budgetValue,
             /* "budgetDebug": $budgetDebug, */
+            "connects": $connects.jobsPrice,
+            "connectsBid":  $maxbid,
 
-            /* dates */
-            "dateCreated": jobDetails.opening.job.info.createdOn,
-            "dateChecked": jobDetails.opening.job.clientActivity.lastBuyerActivity,
-
-            /* competition */
-            "devsApplied": jobDetails.opening.job.clientActivity.totalApplicants,
-            "devsHired": jobDetails.opening.job.clientActivity.totalHired,
-            "devsInterviewing": jobDetails.opening.job.clientActivity.totalInvitedToInterview,
-
-            "a" : "b"
-
+            /* Client */
+            "clientName" : $details.jobDetails.buyer.info.company.name,
+            "clientEmployees" : $details.jobDetails.buyer.info.company.profile.size,
+            "clientCountry" : $details.jobDetails.buyer.info.location.country,
+            "clientPayverified": $details.jobDetails.buyer.isPaymentMethodVerified,
+            "clientScore": $round($details.jobDetails.buyer.info.stats.score, 1),
+            "clientSpent": "$" & $details.jobDetails.buyer.info.stats.totalCharges.amount,
+            "clientRateAvg": $clientAvgRate
         }
     }
 )
