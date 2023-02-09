@@ -27,8 +27,9 @@
 async function main_routine() {
 
     const jobs_ids  = get_jobs_ids();
-    const jobs_data = get_jobs_data(jobs_ids);
-    //const jobs_data = await gather_jobs_data(jobs_ids);
+    const jobs_data = await get_jobs_data(jobs_ids);
+    console.log(jobs_data);
+
 }
 
 
@@ -39,9 +40,9 @@ function get_jobs_ids() {
 
     let jobids = [];
     for (const link of links) {
-        console.log("------------------------");
+        //console.log("------------------------");
         const href = link.getAttribute("href");
-        console.log(href);
+        //console.log(href);
 
         const m = get_regex_groups(href, regex);
         const jobid = m[1];
@@ -55,20 +56,16 @@ function get_jobs_ids() {
 
 async function get_jobs_data(jobs_ids) {
 
-    //const promises = [];
-    let idx = 0;
+    const jobs_data = [];
     for (const job_id of jobs_ids) {
 
         const job_data = await get_job_data(job_id);
-        console.log(job_data);
-        
-        console.log("Should end here ----");
+        //console.log(job_data);
+        //console.log("Should end here ----");        
 
-        // just for testing
-        idx++;
-        if (idx == 2) return;
-        
+        jobs_data.push(job_data);
     }
+    return jobs_data;
 }
 
 function get_regex_groups (str, regex) {

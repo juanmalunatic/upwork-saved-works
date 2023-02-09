@@ -1,0 +1,69 @@
+$.(
+    
+    /* Client activity */
+    $clientAct := jobDetails.opening.job.clientActivity;
+    $id := jobDetails.opening.job.info.ciphertext;
+
+    /* ------ Start budget -------- */
+
+    /* check key to see if 1 ("hourly") */
+    $budgetType := jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetType;
+    $budgetType := ($budgetType = 1) ? "hourly" : $budgetType;
+
+    /* if it wasn't marked as hourly, store job flat amount */
+    $budgetType := ($budgetType != "hourly") ? jobDetails.opening.job.budget.amount : $budgetType;
+    /* if flat amount is zero, mark as none, otherwise preserve values or mark as fixed */
+    $budgetType := ($budgetType = 0) ? "none" : $budgetType;
+    $budgetType := ($type($budgetType) = "number") ? "fixed" : $budgetType;
+
+    $hourlyMin := jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetMin;
+    $hourlyMax := jobDetails.opening.job.extendedBudgetInfo.hourlyBudgetMax;
+
+    $forceNumber := function($input) {
+        ($type($input) != "number") ? 0 : $input
+    };
+
+    $hourlyMin := $forceNumber($hourlyMin);
+    $hourlyMax := $forceNumber($hourlyMax);
+
+    $hourlyAvg := $average([$hourlyMin, $hourlyMax]);
+    
+    $budgetValue := "none";
+    $budgetValue := ($budgetType = "hourly") ? $hourlyAvg : $budgetValue;
+    $budgetValue := ($budgetType = "fixed") ? jobDetails.opening.job.budget.amount : $budgetValue;
+
+    /* ------ End budget -------- */
+    
+    $budgetDebug := [jobDetails.opening.job.budget, jobDetails.opening.job.extendedBudgetInfo];
+
+    /* Output block */
+    {
+        "job" : {
+
+            "tokens": jobDetails.opening.job.info.access,
+
+            /* meta */
+            "id": $id,
+            "link": "https://www.upwork.com/jobs/" & $id,
+            "title": jobDetails.opening.job.info.title,
+            "description": jobDetails.opening.job.description,
+
+            /* ROI */
+            "budgetType": $budgetType,
+            "budgetValue" : $budgetValue,
+            /* "budgetDebug": $budgetDebug, */
+
+            /* dates */
+            "dateCreated": jobDetails.opening.job.info.createdOn,
+            "dateChecked": jobDetails.opening.job.clientActivity.lastBuyerActivity,
+
+            /* competition */
+            "devsApplied": jobDetails.opening.job.clientActivity.totalApplicants,
+            "devsHired": jobDetails.opening.job.clientActivity.totalHired,
+            "devsInterviewing": jobDetails.opening.job.clientActivity.totalInvitedToInterview,
+
+            "a" : "b"
+
+        }
+    }
+)
